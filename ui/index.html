@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sergei's Warehouse</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* NUI visibility */
+      body { background: transparent; }
+      .ipad-frame { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="ipad-frame" id="ipad">
+      <div class="ipad-screen">
+        <div class="ui-container">
+          <div class="top-bar">
+            <div class="top-bar-left">
+              <i class="company-icon">🏭</i>
+              <h2 class="company-name">Sergei's Warehouse</h2>
+            </div>
+            <div class="top-bar-right">
+              <button class="close-btn" id="closeBtn">✕</button>
+            </div>
+          </div>
+
+          <div class="main-layout">
+            <div class="sidebar">
+              <div class="sidebar-header">
+                <h3>Menu</h3>
+              </div>
+              <div class="sidebar-nav">
+                <button class="nav-item active" data-tab="buy"><i>💳</i>Buy Warehouse</button>
+                <button class="nav-item" data-tab="storage" id="storageTab" style="display:none"><i>📦</i>Storage</button>
+                <button class="nav-item" data-tab="about"><i>ℹ️</i>About</button>
+              </div>
+              <div class="sidebar-footer">
+                <div class="user-info">
+                  <i>👤</i>
+                  <div class="user-details">
+                    <span class="user-rank" id="ownerStatus">Not Owned</span>
+                    <span class="user-status">QBCore</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-area">
+              <div class="tab-pane active" id="tab-buy">
+                <div class="catalog-overview-card">
+                  <div class="card-header">
+                    <h3><i>💳</i> Purchase</h3>
+                  </div>
+                  <p>Buy your own personal warehouse with expandable storage capacity.</p>
+                  <div class="warehouse-info" id="warehouseInfo">
+                    <div class="info-card">
+                      <h4>Warehouse</h4>
+                      <div class="info-details">
+                        <span class="price">$150,000</span>
+                        <span class="description">Base warehouse with storage system</span>
+                      </div>
+                      <div class="warehouse-actions" id="warehouseActions"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane" id="tab-storage">
+                <div class="dashboard-card">
+                  <div class="card-header">
+                    <h3><i>📦</i> Storage Management</h3>
+                  </div>
+                  <div class="storage-overview">
+                    <div class="storage-stats">
+                      <div class="stat-item">
+                        <span class="stat-label">Purchased Slots:</span>
+                        <span class="stat-value" id="purchasedSlots">0</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Max Slots:</span>
+                        <span class="stat-value" id="maxSlots">6</span>
+                      </div>
+                      <div class="stat-item">
+                        <span class="stat-label">Slot Price:</span>
+                        <span class="stat-value" id="slotPrice">$5,000</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="storage-grid" id="storageGrid">
+                    <!-- Storage slots will be rendered here -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane" id="tab-about">
+                <div class="dashboard-card">
+                  <div class="card-header">
+                    <h3><i>ℹ️</i> About</h3>
+                  </div>
+                  <div class="about-content">
+                    <p>Sergei's Warehouse provides secure storage solutions for businesses and individuals.</p>
+                    <p>Expand your storage capacity by purchasing additional slots as your needs grow.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sell Confirmation Modal -->
+    <div class="modal-overlay" id="sellModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i>⚠️</i> Confirm Warehouse Sale</h3>
+        </div>
+        <div class="modal-body">
+          <div class="warning-message">
+            <p><strong>Warning: This action cannot be undone!</strong></p>
+            <p>If you sell your warehouse, you will lose:</p>
+            <ul>
+              <li>All stored items in your warehouse</li>
+              <li>All purchased storage slots</li>
+              <li>Access to your warehouse</li>
+            </ul>
+            <p>You will receive: <span class="sell-price" id="sellPriceDisplay">$0</span></p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelSell">Cancel</button>
+          <button class="btn btn-danger" id="confirmSell">Sell Warehouse</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
+
+
