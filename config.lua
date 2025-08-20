@@ -15,8 +15,18 @@ Config.SellAccount = 'bank' -- Account type for receiving sell money (can be 'ba
 Config.Warehouse = {
     price = 150000, -- Base warehouse price
     sellPrice = 75000, -- Warehouse sell price (50% of purchase price)
-    slotPrice = 5000, -- Price per additional storage slot
+    slotPrice = 5000, -- Default price per additional storage slot
     maxSlots = 6, -- Maximum storage slots a player can purchase (matches 6 crates)
+    
+    -- Individual slot pricing - each slot can have its own price
+    slotPrices = {
+        [1] = 5000,   -- Slot 1 price
+        [2] = 7500,   -- Slot 2 price (more expensive)
+        [3] = 10000,  -- Slot 3 price (premium)
+        [4] = 12500,  -- Slot 4 price (luxury)
+        [5] = 15000,  -- Slot 5 price (exclusive)
+        [6] = 20000,  -- Slot 6 price (ultimate)
+    },
     
     -- Interior settings - Correct Executive Small Warehouse coordinates
     interiorAnchor = vector4(1094.988, -3101.776, -39.00363, 0.0),

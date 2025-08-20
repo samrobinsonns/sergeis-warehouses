@@ -342,10 +342,10 @@ end)
 -- Event to refresh storage grid specifically
 RegisterNetEvent('sergeis-warehouse:client:refreshStorageGrid', function()
     -- Refresh the storage grid in the UI
-            SendNUIMessage({
+    SendNUIMessage({
         action = 'refreshStorage'
-            })
-        end)
+    })
+end)
 
 -- Event to refresh crates when slots are purchased
 RegisterNetEvent('sergeis-warehouse:client:refreshCrates', function()
@@ -613,6 +613,17 @@ RegisterNUICallback('buyStorageSlots', function(data, cb)
         cb('ok')
     else
         QBCore.Functions.Notify('Invalid slot count', 'error')
+        cb('error')
+    end
+end)
+
+RegisterNUICallback('buySpecificSlot', function(data, cb)
+    local slotNumber = tonumber(data.slotNumber) or 1
+    if slotNumber and slotNumber > 0 and slotNumber <= Config.Warehouse.maxSlots then
+        TriggerServerEvent('sergeis-warehouse:server:buySpecificSlot', slotNumber)
+        cb('ok')
+    else
+        QBCore.Functions.Notify('Invalid slot number', 'error')
         cb('error')
     end
 end)

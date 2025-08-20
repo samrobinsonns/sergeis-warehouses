@@ -53,13 +53,36 @@ function formatMoney(n) {
 
 function updateWarehouseInfo(info) {
   warehouseInfo = info;
+  
+  // Debug: Log the received slot prices
+  console.log('Warehouse info received:', info);
+  if (info.slot_prices) {
+    console.log('Individual slot prices:');
+    for (let slot in info.slot_prices) {
+      console.log(`  Slot ${slot}: $${info.slot_prices[slot]}`);
+    }
+  }
+  
   ownerStatus.textContent = info.owned ? 'Owned' : 'Not Owned';
   
   if (info.owned) {
     storageTab.style.display = 'block';
     purchasedSlots.textContent = info.purchased_slots;
     maxSlots.textContent = info.max_slots;
-    slotPrice.textContent = formatMoney(info.slot_price);
+    
+    // Show next available slot price or "All slots purchased"
+    const nextSlotNumber = info.purchased_slots + 1;
+    if (nextSlotNumber <= info.max_slots) {
+      // Note: Server sends 1-based slot numbers, but JS arrays are 0-based
+      const nextSlotPriceKey = nextSlotNumber - 1;
+      if (info.slot_prices && info.slot_prices[nextSlotPriceKey]) {
+        slotPrice.textContent = formatMoney(info.slot_prices[nextSlotPriceKey]);
+      } else {
+        slotPrice.textContent = formatMoney(info.slot_price);
+      }
+    } else {
+      slotPrice.textContent = 'All slots purchased';
+    }
     
     // Update warehouse actions with sell price
     warehouseActions.innerHTML = `
@@ -79,6 +102,8 @@ function updateWarehouseInfo(info) {
 function renderStorageGrid() {
   if (!warehouseInfo) return;
   
+
+  
   storageGrid.innerHTML = '';
   const maxSlots = 6; // Fixed to 6 slots
   const purchasedSlots = warehouseInfo.purchased_slots || 0;
@@ -87,19 +112,37 @@ function renderStorageGrid() {
     const slotElement = document.createElement('div');
     slotElement.className = 'storage-slot';
     
-    const isOwned = i < purchasedSlots;
+    const slotNumber = i + 1;
+    const isOwned = slotNumber <= purchasedSlots;
     const slotStatus = isOwned ? 'Owned' : 'Available';
     const slotClass = isOwned ? 'owned' : 'available';
     
+    // Get individual slot price or fallback to default
+    // Note: Server sends 1-based slot numbers, but JS arrays are 0-based, so we need slotNumber-1
+    const slotPriceKey = slotNumber - 1;
+    const slotPrice = warehouseInfo.slot_prices && warehouseInfo.slot_prices[slotPriceKey] 
+      ? warehouseInfo.slot_prices[slotPriceKey] 
+      : warehouseInfo.slot_price;
+    
+
+    
+    // Check if this slot can be purchased (must be the next available slot)
+    const canPurchase = !isOwned && slotNumber === purchasedSlots + 1;
+    
     slotElement.innerHTML = `
       <div class="slot-header ${slotClass}">
-        <span class="slot-number">Slot ${i + 1}</span>
+        <span class="slot-number">Slot ${slotNumber}</span>
         <span class="slot-status">${slotStatus}</span>
       </div>
       <div class="slot-content">
         ${isOwned ? 
           '<span class="slot-info">Storage Available</span>' : 
-          `<button class="btn btn-sm btn-primary buy-slot-btn" onclick="buySingleSlot(${i + 1})">Buy Slot $${warehouseInfo.slot_price.toLocaleString()}</button>`
+          canPurchase ?
+          `<div class="slot-purchase-info">
+            <span class="slot-price">$${slotPrice.toLocaleString()}</span>
+            <button class="btn btn-sm btn-primary buy-slot-btn" onclick="buySingleSlot(${slotNumber})">Buy Slot</button>
+           </div>` :
+          '<span class="slot-info">Purchase previous slots first</span>'
         }
       </div>
     `;
@@ -111,9 +154,9 @@ function renderStorageGrid() {
 
 function buySingleSlot(slotNumber) {
   if (isNui) {
-    fetch(`https://${GetParentResourceName()}/buyStorageSlots`, { 
+    fetch(`https://${GetParentResourceName()}/buySpecificSlot`, { 
       method: 'POST', 
-      body: JSON.stringify({ slotCount: 1 }) 
+      body: JSON.stringify({ slotNumber: slotNumber }) 
     });
   } else {
     console.log(`Dev mode: Buy slot ${slotNumber}`);

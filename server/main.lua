@@ -1,5 +1,7 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
+
+
 -- Simplified SQL schema for single warehouse type
 CreateThread(function()
     MySQL.query([[CREATE TABLE IF NOT EXISTS `warehouses` (
@@ -34,6 +36,12 @@ end
 local function getWarehouseData(citizenId)
     local result = MySQL.query.await('SELECT * FROM warehouses WHERE citizenid = ?', { citizenId })
     return result and result[1]
+end
+
+-- Get the price for a specific slot
+local function getSlotPrice(slotNumber)
+    local price = Config.Warehouse.slotPrices[slotNumber] or Config.Warehouse.slotPrice
+    return price
 end
 
 -- Buy warehouse
@@ -124,6 +132,66 @@ RegisterNetEvent('sergeis-warehouse:server:buyStorageSlots', function(slotCount)
     end
 end)
 
+-- Buy specific storage slot (new function for individual slot pricing)
+RegisterNetEvent('sergeis-warehouse:server:buySpecificSlot', function(slotNumber)
+    local src = source
+    local player = QBCore.Functions.GetPlayer(src)
+    if not player then return end
+    
+    local citizenId = player.PlayerData.citizenid
+    local warehouse = getWarehouseData(citizenId)
+    
+    if not warehouse then
+        TriggerClientEvent('QBCore:Notify', src, 'You do not own a warehouse', 'error')
+        return
+    end
+    
+    -- Check if slot number is valid
+    if slotNumber < 1 or slotNumber > Config.Warehouse.maxSlots then
+        TriggerClientEvent('QBCore:Notify', src, 'Invalid slot number', 'error')
+        return
+    end
+    
+    -- Check if slot is already purchased
+    if slotNumber <= warehouse.purchased_slots then
+        TriggerClientEvent('QBCore:Notify', src, 'This slot is already purchased', 'error')
+        return
+    end
+    
+    -- Check if slot can be purchased (must be consecutive)
+    if slotNumber > warehouse.purchased_slots + 1 then
+        TriggerClientEvent('QBCore:Notify', src, 'You must purchase slots in order', 'error')
+        return
+    end
+    
+    -- Get the price for this specific slot
+    local slotPrice = getSlotPrice(slotNumber)
+    
+    -- Check if player has enough money
+    if player.PlayerData.money[Config.PurchaseAccount] < slotPrice then
+        TriggerClientEvent('QBCore:Notify', src, 'Not enough money. Slot ' .. slotNumber .. ' costs $' .. slotPrice, 'error')
+        return
+    end
+    
+    -- Remove money and update warehouse
+    player.Functions.RemoveMoney(Config.PurchaseAccount, slotPrice)
+    
+    local success = MySQL.update.await('UPDATE warehouses SET purchased_slots = ? WHERE id = ?', {
+        slotNumber, warehouse.id
+    })
+    
+    if success then
+        TriggerClientEvent('QBCore:Notify', src, 'Slot ' .. slotNumber .. ' purchased successfully for $' .. slotPrice, 'success')
+        TriggerClientEvent('sergeis-warehouse:client:refreshOwnership', src)
+        TriggerClientEvent('sergeis-warehouse:client:refreshStorageGrid', src)
+        TriggerClientEvent('sergeis-warehouse:client:refreshCrates', src)
+    else
+        -- Refund money if database update failed
+        player.Functions.AddMoney(Config.PurchaseAccount, slotPrice)
+        TriggerClientEvent('QBCore:Notify', src, 'Purchase failed, please try again', 'error')
+    end
+end)
+
 -- Sell warehouse
 RegisterNetEvent('sergeis-warehouse:server:sellWarehouse', function()
     local src = source
@@ -190,7 +258,8 @@ RegisterNetEvent('sergeis-warehouse:server:getWarehouseInfo', function()
         max_slots = Config.Warehouse.maxSlots,
         slot_price = Config.Warehouse.slotPrice,
         warehouse_price = Config.Warehouse.price,
-        sell_price = Config.Warehouse.sellPrice
+        sell_price = Config.Warehouse.sellPrice,
+        slot_prices = Config.Warehouse.slotPrices -- Add individual slot prices
     }
     
     if warehouse then
