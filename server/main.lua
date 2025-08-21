@@ -271,6 +271,115 @@ RegisterNetEvent('sergeis-warehouse:server:getWarehouseInfo', function()
     TriggerClientEvent('sergeis-warehouse:client:receiveWarehouseInfo', src, info)
 end)
 
+-- Validate player bucket access
+local function validatePlayerBucket(src, warehouseId)
+    local player = QBCore.Functions.GetPlayer(src)
+    if not player then return false end
+    
+    local currentBucket = player.state.warehouseBucket
+    if not currentBucket or currentBucket <= 0 then return false end
+    
+    -- Check if player is in the correct bucket for their warehouse
+    local expectedBucket = src + (warehouseId * 1000)
+    return currentBucket == expectedBucket
+end
+
+-- Set routing bucket for warehouse instancing
+RegisterNetEvent('sergeis-warehouse:server:setBucket', function(bucketId)
+    local src = source
+    local player = QBCore.Functions.GetPlayer(src)
+    if not player then return end
+    
+    if bucketId and bucketId > 0 then
+        -- Ensure bucket ID is unique by using player's source ID + warehouse ID
+        local uniqueBucketId = src + (bucketId * 1000)
+        
+        -- Set player to their unique warehouse bucket
+        SetPlayerRoutingBucket(src, uniqueBucketId)
+        
+        -- Lock down the bucket to prevent other players from entering
+        SetRoutingBucketEntityLockdownMode(uniqueBucketId, 'strict')
+        
+        -- Store the bucket ID for this player
+        player.state.warehouseBucket = uniqueBucketId
+        
+        print(string.format('[WAREHOUSE] Player %s (%s) entered warehouse bucket %d (unique: %d)', 
+            player.PlayerData.name, player.PlayerData.citizenid, bucketId, uniqueBucketId))
+    else
+        -- Return player to default bucket (0)
+        local currentBucket = player.state.warehouseBucket
+        if currentBucket then
+            SetPlayerRoutingBucket(src, 0)
+            player.state.warehouseBucket = nil
+            print(string.format('[WAREHOUSE] Player %s (%s) returned to default bucket from %d', 
+                player.PlayerData.name, player.PlayerData.citizenid, currentBucket))
+        else
+            SetPlayerRoutingBucket(src, 0)
+            print(string.format('[WAREHOUSE] Player %s (%s) returned to default bucket', 
+                player.PlayerData.name, player.PlayerData.citizenid))
+        end
+    end
+end)
+
+-- Debug command to check bucket status
+RegisterCommand('warehouse_debug', function(source, args)
+    local src = source
+    local player = QBCore.Functions.GetPlayer(src)
+    if not player then return end
+    
+    if not Config.Debug then
+        TriggerClientEvent('QBCore:Notify', src, 'Debug mode is disabled', 'error')
+        return
+    end
+    
+    local citizenId = player.PlayerData.citizenid
+    local warehouse = getWarehouseData(citizenId)
+    local currentBucket = player.state.warehouseBucket
+    
+    local debugInfo = {
+        playerName = player.PlayerData.name,
+        citizenId = citizenId,
+        hasWarehouse = warehouse ~= nil,
+        warehouseId = warehouse and warehouse.id or 'None',
+        currentBucket = currentBucket or 'Default (0)',
+        insideWarehouse = currentBucket and currentBucket > 0
+    }
+    
+    print(string.format('[WAREHOUSE DEBUG] Player: %s, Warehouse: %s, Bucket: %s', 
+        debugInfo.playerName, debugInfo.warehouseId, debugInfo.currentBucket))
+    
+    TriggerClientEvent('QBCore:Notify', src, string.format('Debug: Warehouse ID: %s, Bucket: %s', 
+        debugInfo.warehouseId, debugInfo.currentBucket), 'primary')
+end, false)
+
+-- Cleanup on resource stop
+AddEventHandler('onResourceStop', function(resourceName)
+    if GetCurrentResourceName() == resourceName then
+        -- Return all players to default bucket
+        local players = QBCore.Functions.GetPlayers()
+        for _, playerId in ipairs(players) do
+            local player = QBCore.Functions.GetPlayer(playerId)
+            if player and player.state.warehouseBucket then
+                SetPlayerRoutingBucket(playerId, 0)
+                player.state.warehouseBucket = nil
+                print(string.format('[WAREHOUSE] Player %s returned to default bucket on resource stop', 
+                    player.PlayerData.name))
+            end
+        end
+    end
+end)
+
+-- Handle player disconnection
+AddEventHandler('playerDropped', function(reason)
+    local src = source
+    local player = QBCore.Functions.GetPlayer(src)
+    if player and player.state.warehouseBucket then
+        print(string.format('[WAREHOUSE] Player %s disconnected from warehouse bucket %d', 
+            player.PlayerData.name, player.state.warehouseBucket))
+        player.state.warehouseBucket = nil
+    end
+end)
+
 -- Get storage contents
 RegisterNetEvent('sergeis-warehouse:server:getStorageContents', function()
     local src = source
@@ -282,6 +391,12 @@ RegisterNetEvent('sergeis-warehouse:server:getStorageContents', function()
     
     if not warehouseId then
         TriggerClientEvent('QBCore:Notify', src, 'You do not own a warehouse', 'error')
+        return
+    end
+    
+    -- Validate that player is in the correct bucket
+    if not validatePlayerBucket(src, warehouseId) then
+        TriggerClientEvent('QBCore:Notify', src, 'Access denied: Invalid warehouse session', 'error')
         return
     end
     
@@ -304,6 +419,12 @@ RegisterNetEvent('sergeis-warehouse:server:openCrateStorage', function(crateInde
     local warehouseId = getWarehouseIdForCitizen(citizenId)
     if not warehouseId then
         TriggerClientEvent('QBCore:Notify', src, 'You do not own a warehouse', 'error')
+        return
+    end
+    
+    -- Validate that player is in the correct bucket
+    if not validatePlayerBucket(src, warehouseId) then
+        TriggerClientEvent('QBCore:Notify', src, 'Access denied: Invalid warehouse session', 'error')
         return
     end
     
@@ -360,6 +481,12 @@ RegisterNetEvent('sergeis-warehouse:server:storeItem', function(slotIndex, itemN
         return
     end
     
+    -- Validate that player is in the correct bucket
+    if not validatePlayerBucket(src, warehouseId) then
+        TriggerClientEvent('QBCore:Notify', src, 'Access denied: Invalid warehouse session', 'error')
+        return
+    end
+    
     -- Check if slot is available (within purchased slots)
     local warehouse = getWarehouseData(citizenId)
     if slotIndex >= warehouse.purchased_slots then
@@ -409,6 +536,12 @@ RegisterNetEvent('sergeis-warehouse:server:retrieveItem', function(slotIndex, it
     
     if not warehouseId then
         TriggerClientEvent('QBCore:Notify', src, 'You do not own a warehouse', 'error')
+        return
+    end
+    
+    -- Validate that player is in the correct bucket
+    if not validatePlayerBucket(src, warehouseId) then
+        TriggerClientEvent('QBCore:Notify', src, 'Access denied: Invalid warehouse session', 'error')
         return
     end
     
