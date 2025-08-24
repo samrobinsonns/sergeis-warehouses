@@ -246,9 +246,17 @@ local function enterWarehouse()
     -- Load IPLs
     loadIPLs(currentLoadedIPLs)
     
-    -- Create routing bucket
+    -- Create routing bucket - ensure we have a valid ID
+    if not ownership.id or ownership.id <= 0 then
+        QBCore.Functions.Notify('Warehouse ID is invalid', 'error')
+        return
+    end
+    
     currentBucket = ownership.id
     TriggerServerEvent('sergeis-warehouse:server:setBucket', currentBucket)
+    
+    -- Wait a moment for the bucket to be set
+    Wait(500)
     
     -- Teleport to interior
     local playerPed = PlayerPedId()
@@ -261,6 +269,11 @@ local function enterWarehouse()
     spawnCrates()
     
     insideWarehouse = true
+    
+    -- Debug info
+    if Config.Debug then
+        print(string.format('[WAREHOUSE] Entered warehouse with bucket ID: %d', currentBucket))
+    end
 end
 
 local function exitWarehouse()
@@ -272,6 +285,14 @@ local function exitWarehouse()
     -- Reset routing bucket
     if currentBucket then
         TriggerServerEvent('sergeis-warehouse:server:setBucket', 0)
+        
+        -- Wait a moment for the bucket to be reset
+        Wait(500)
+        
+        if Config.Debug then
+            print(string.format('[WAREHOUSE] Exited warehouse bucket: %d', currentBucket))
+        end
+        
         currentBucket = nil
     end
     
@@ -323,13 +344,32 @@ end)
 RegisterNetEvent('sergeis-warehouse:client:onWarehouseSold', function()
     ownership.has = false
     ownership.id = nil
+    
     -- Remove entrance blip
     if DoesBlipExist(entranceBlip) then
         RemoveBlip(entranceBlip)
         entranceBlip = nil
     end
+    
+    -- If player is inside warehouse, exit and reset bucket
     if insideWarehouse then
-        exitWarehouse()
+        -- Force exit without triggering server event (since warehouse is sold)
+        cleanupInterior()
+        
+        -- Reset routing bucket locally
+        if currentBucket then
+            currentBucket = nil
+        end
+        
+        -- Teleport to entrance
+        local playerPed = PlayerPedId()
+        local exitCoords = Config.Entrance.coords
+        teleportWithCollision(playerPed, exitCoords, Config.Entrance.heading)
+        
+        insideWarehouse = false
+        
+        -- Notify server to reset bucket
+        TriggerServerEvent('sergeis-warehouse:server:setBucket', 0)
     end
 end)
 
@@ -354,29 +394,53 @@ RegisterNetEvent('sergeis-warehouse:client:refreshCrates', function()
     end
 end)
 
+-- Event when server-side recovery is complete
+RegisterNetEvent('sergeis-warehouse:client:recoveryComplete', function()
+    print('[WAREHOUSE] Server-side recovery completed')
+    -- Additional cleanup if needed
+end)
+
 -- Recovery function to handle server restarts
 local function recoveryFromRestart()
+    print('[WAREHOUSE] Recovery from restart initiated...')
+    
+    -- Check if player was in a warehouse when resource restarted
+    -- Also check if player is in a warehouse-like area (underground/interior)
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
+    local entranceCoords = Config.Entrance.coords
     
-    -- Check if player is near warehouse interior coordinates
-    local warehouseCoords = Config.Warehouse.interiorAnchor
-    local distanceToWarehouse = #(playerCoords - vector3(warehouseCoords.x, warehouseCoords.y, warehouseCoords.z))
+    -- Check if player is underground or in warehouse area
+    local shouldRecover = insideWarehouse or currentBucket or 
+                         (playerCoords.z < -10.0) or -- Underground
+                         (#(playerCoords - entranceCoords) < 200.0 and playerCoords.z < 0.0) -- Near entrance but underground
     
-    if distanceToWarehouse < 100.0 then
-        -- Teleport to entrance
-        teleportWithCollision(playerPed, Config.Entrance.coords, Config.Entrance.heading)
-        QBCore.Functions.Notify('You were returned to the warehouse entrance after a restart', 'primary')
+    if shouldRecover then
+        print('[WAREHOUSE] Resource restart detected while in warehouse or warehouse area, resetting state...')
+        
+        -- Reset local state
+        insideWarehouse = false
+        currentBucket = nil
+        currentAnchor = nil
+        currentAnchorHeading = 0.0
+        currentLoadedIPLs = nil
+        
+        -- Clean up any remaining props
+        cleanupInterior()
+        
+        -- Request server-side recovery and bucket reset
+        TriggerServerEvent('sergeis-warehouse:server:requestRecovery')
+        
+        -- Always teleport to entrance on resource restart
+        teleportWithCollision(playerPed, entranceCoords, Config.Entrance.heading)
+        
+        QBCore.Functions.Notify('Warehouse session reset due to resource restart', 'info')
+    else
+        print('[WAREHOUSE] No recovery needed, player not in warehouse area')
     end
     
-    -- Reset warehouse state
-    insideWarehouse = false
-    currentBucket = nil
-    currentAnchor = nil
-    currentAnchorHeading = 0.0
-    
-    -- Clean up any existing props
-    cleanupInterior()
+    -- Always refresh ownership info
+    refreshOwnership()
 end
 
 -- Function to spawn entrance door prop
@@ -490,6 +554,13 @@ CreateThread(function()
     
     -- Recovery system for server restarts
     recoveryFromRestart()
+    
+    -- Additional recovery check after a longer delay
+    CreateThread(function()
+        Wait(10000) -- 10 seconds
+        print('[WAREHOUSE] Running delayed recovery check...')
+        recoveryFromRestart()
+    end)
 end)
 
 -- Main thread
@@ -573,6 +644,29 @@ CreateThread(function()
     end
 end)
 
+-- Debug command to check client-side warehouse state
+RegisterCommand('warehouse_client_debug', function(source, args)
+    if not Config.Debug then
+        QBCore.Functions.Notify('Debug mode is disabled', 'error')
+        return
+    end
+    
+    local debugInfo = {
+        hasWarehouse = ownership.has,
+        warehouseId = ownership.id or 'None',
+        purchasedSlots = ownership.purchased_slots or 0,
+        currentBucket = currentBucket or 'None',
+        insideWarehouse = insideWarehouse,
+        currentAnchor = currentAnchor and string.format('%.2f, %.2f, %.2f', currentAnchor.x, currentAnchor.y, currentAnchor.z) or 'None'
+    }
+    
+    print(string.format('[WAREHOUSE CLIENT DEBUG] Has: %s, ID: %s, Bucket: %s, Inside: %s', 
+        debugInfo.hasWarehouse, debugInfo.warehouseId, debugInfo.currentBucket, debugInfo.insideWarehouse))
+    
+    QBCore.Functions.Notify(string.format('Client Debug: Has: %s, ID: %s, Bucket: %s, Inside: %s', 
+        debugInfo.hasWarehouse, debugInfo.warehouseId, debugInfo.currentBucket, debugInfo.insideWarehouse), 'primary')
+end, false)
+
 -- Cleanup on resource stop
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() == resourceName then
@@ -589,9 +683,17 @@ end)
 -- Recovery on resource start
 AddEventHandler('onClientResourceStart', function(resourceName)
     if resourceName == GetCurrentResourceName() then
+        print('[WAREHOUSE] Resource started, initiating recovery...')
         -- Wait a bit for everything to load, then run recovery
         Wait(2000)
         recoveryFromRestart()
+        
+        -- Backup recovery after a longer delay in case first one fails
+        CreateThread(function()
+            Wait(5000)
+            print('[WAREHOUSE] Running backup recovery...')
+            recoveryFromRestart()
+        end)
     end
 end)
 
@@ -645,6 +747,13 @@ RegisterCommand('warehouse', function()
         QBCore.Functions.Notify('You do not own a warehouse', 'error')
     end
 end)
+
+-- Command to force recovery (useful if player gets stuck)
+RegisterCommand('warehouse_recover', function()
+    print('[WAREHOUSE] Manual recovery triggered by player')
+    recoveryFromRestart()
+    QBCore.Functions.Notify('Warehouse recovery initiated', 'info')
+end, false)
 
 -- Key binding
 RegisterKeyMapping('warehouse', 'Open Warehouse Menu', 'keyboard', 'F6')
