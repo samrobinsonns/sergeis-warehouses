@@ -1,7 +1,7 @@
 Config = {}
 
 -- General
-Config.Debug = false
+Config.Debug = true
 Config.Locale = 'en'
 Config.AllowMultipleWarehouses = false -- one per citizen by default
 Config.TargetSystem = 'ox_target' -- 'ox_target' or 'qb-target'
@@ -118,5 +118,27 @@ Config.Storage = {
 -- Distances
 Config.DrawDistance = 30.0
 Config.InteractDistance = 2.0
+
+-- Warehouse Sharing System Configuration
+Config.Sharing = {
+    enabled = true,
+    permissionLevels = {
+        'read',    -- Read-only access
+        'write',   -- Read and write access
+        'admin'    -- Full access except ownership
+    },
+    
+    defaultPermission = 'read',
+    maxSharedUsers = 10,
+    allowTemporaryAccess = true,
+    maxTemporaryDuration = 24 * 60 * 60, -- 24 hours in seconds
+    
+    -- UI Settings
+    showPermissionLevels = true,
+    showExpirationDates = true,
+    showOwnerNames = true,
+    showAccessTimestamps = false,
+    maxWarehousesPerPage = 5
+}
 
 
