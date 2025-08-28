@@ -928,19 +928,11 @@ RegisterNUICallback('closeUI', function(data, cb)
     cb('ok')
 end)
 
--- Command to open UI
-RegisterCommand('warehouse', function()
-    if ownership.has then
-        openWarehouseUI()
-    else
-        QBCore.Functions.Notify('You do not own a warehouse', 'error')
-    end
-end)
 
 
 
--- Key binding
-RegisterKeyMapping('warehouse', 'Open Warehouse Menu', 'keyboard', 'F6')
+
+
 
 -- ========================================
 -- WAREHOUSE SHARING SYSTEM FUNCTIONS
