@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sergei's Warehouse</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
       /* NUI visibility */
       body { background: transparent; }
@@ -15,13 +16,18 @@
     <div class="ipad-frame" id="ipad">
       <div class="ipad-screen">
         <div class="ui-container">
+          <!-- Notification System -->
+          <div class="notification-container" id="notificationContainer">
+            <!-- Notifications will be dynamically added here -->
+          </div>
+          
           <div class="top-bar">
             <div class="top-bar-left">
-              <i class="company-icon">🏭</i>
+              <i class="company-icon fas fa-warehouse"></i>
               <h2 class="company-name">Sergei's Warehouse</h2>
             </div>
             <div class="top-bar-right">
-              <button class="close-btn" id="closeBtn">✕</button>
+              <button class="close-btn" id="closeBtn">×</button>
             </div>
           </div>
 
@@ -31,16 +37,18 @@
                 <h3>Menu</h3>
               </div>
               <div class="sidebar-nav">
-                <button class="nav-item active" data-tab="buy"><i>💳</i>Buy Warehouse</button>
-                <button class="nav-item" data-tab="storage" id="storageTab" style="display:none"><i>📦</i>Storage</button>
-                <button class="nav-item" data-tab="about"><i>ℹ️</i>About</button>
+                <button class="nav-item active" data-tab="buy"><i class="icon fas fa-credit-card"></i> Buy Warehouse</button>
+                <button class="nav-item" data-tab="storage" id="storageTab" style="display:none"><i class="icon fas fa-boxes"></i> Storage</button>
+                <button class="nav-item" data-tab="sharing" id="sharingTab" style="display:none"><i class="icon fas fa-handshake"></i> Sharing</button>
+                <button class="nav-item" data-tab="shared" id="sharedTab" style="display:none"><i class="icon fas fa-key"></i> Shared Access</button>
+                <button class="nav-item" data-tab="about"><i class="icon fas fa-info-circle"></i> About</button>
               </div>
               <div class="sidebar-footer">
                 <div class="user-info">
-                  <i>👤</i>
+                  <i class="icon fas fa-user"></i>
                   <div class="user-details">
                     <span class="user-rank" id="ownerStatus">Not Owned</span>
-                    <span class="user-status">QBCore</span>
+                    <span class="user-status">Warehouses</span>
                   </div>
                 </div>
               </div>
@@ -50,7 +58,7 @@
               <div class="tab-pane active" id="tab-buy">
                 <div class="catalog-overview-card">
                   <div class="card-header">
-                    <h3><i>💳</i> Purchase</h3>
+                    <h3><i class="icon fas fa-shopping-cart"></i> Purchase</h3>
                   </div>
                   <p>Buy your own personal warehouse with expandable storage capacity.</p>
                   <div class="warehouse-info" id="warehouseInfo">
@@ -69,7 +77,7 @@
               <div class="tab-pane" id="tab-storage">
                 <div class="dashboard-card">
                   <div class="card-header">
-                    <h3><i>📦</i> Storage Management</h3>
+                    <h3><i class="icon fas fa-database"></i> Storage Management</h3>
                   </div>
                   <div class="storage-overview">
                     <div class="storage-stats">
@@ -87,7 +95,7 @@
                       </div>
                     </div>
                     <div class="pricing-info">
-                      <p><i>💡</i> Slots must be purchased in order. Each slot has its own price based on exclusivity.</p>
+                      <p><i class="icon fas fa-lightbulb"></i> Slots must be purchased in order. Each slot has its own price based on exclusivity.</p>
                     </div>
                   </div>
                   <div class="storage-grid" id="storageGrid">
@@ -96,10 +104,59 @@
                 </div>
               </div>
 
+              <div class="tab-pane" id="tab-sharing">
+                <div class="dashboard-card">
+                  <div class="card-header">
+                    <h3><i class="icon fas fa-share-alt"></i> Share Warehouse</h3>
+                  </div>
+                  <div class="sharing-overview">
+                                       <div class="sharing-form">
+                     <div class="form-group">
+                       <label for="playerSelection">Select Nearby Player:</label>
+                       <div class="player-results" id="playerResults">
+                         <!-- Nearby players will be populated here -->
+                       </div>
+                     </div>
+                     <div class="form-group">
+                       <label for="sharePermission">Permission Level:</label>
+                       <select id="sharePermission">
+                         <option value="read">Read Only</option>
+                         <option value="write">Read & Write</option>
+                         <option value="admin">Admin (Full Access)</option>
+                       </select>
+                     </div>
+                     <div class="form-group">
+                       <label for="shareExpires">Expires At (Optional):</label>
+                       <input type="datetime-local" id="shareExpires" />
+                     </div>
+                     <button class="btn btn-success" onclick="shareWarehouse()" id="shareBtn" disabled>Share Warehouse</button>
+                   </div>
+                  </div>
+                  <div class="shared-users-section">
+                    <h4><i class="icon fas fa-users"></i> Currently Shared With</h4>
+                    <div class="shared-users-list" id="sharedUsersList">
+                      <!-- Shared users will be rendered here -->
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane" id="tab-shared">
+                <div class="dashboard-card">
+                  <div class="card-header">
+                    <h3><i class="icon fas fa-unlock-alt"></i> Shared Warehouses</h3>
+                  </div>
+                  <div class="shared-warehouses-list" id="sharedWarehousesList">
+                    <!-- Shared warehouses will be rendered here -->
+                  </div>
+                </div>
+              </div>
+
               <div class="tab-pane" id="tab-about">
                 <div class="dashboard-card">
                   <div class="card-header">
-                    <h3><i>ℹ️</i> About</h3>
+                    <h3><i class="icon fas fa-info"></i> About</h3>
                   </div>
                   <div class="about-content">
                     <p>Sergei's Warehouse provides secure storage solutions for businesses and individuals.</p>
@@ -117,7 +174,7 @@
     <div class="modal-overlay" id="sellModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3><i>⚠️</i> Confirm Warehouse Sale</h3>
+                     <h3><i class="icon fas fa-exclamation-triangle"></i> Confirm Warehouse Sale</h3>
         </div>
         <div class="modal-body">
           <div class="warning-message">
@@ -134,6 +191,56 @@
         <div class="modal-footer">
           <button class="btn btn-secondary" id="cancelSell">Cancel</button>
           <button class="btn btn-danger" id="confirmSell">Sell Warehouse</button>
+        </div>
+      </div>
+    </div>
+
+        <!-- Share Management Modal -->
+    <div class="modal-overlay" id="shareModal">
+      <div class="modal-content">
+        <div class="modal-header">
+                      <h3><i class="icon fas fa-cog"></i> Manage Sharing</h3>
+                      <button class="modal-close-btn" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="share-management">
+            <div class="form-group">
+              <label for="editPermission">Permission Level:</label>
+              <select id="editPermission">
+                <option value="read">Read Only</option>
+                <option value="write">Read & Write</option>
+                <option value="admin">Admin (Full Access)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editExpires">Expires At (Optional):</label>
+              <input type="datetime-local" id="editExpires" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-warning" onclick="updateModal()">Update</button>
+          <button class="btn btn-danger" onclick="revokeModal()">Revoke Access</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warehouse Selection Modal -->
+    <div class="modal-overlay" id="warehouseSelectionModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="icon fas fa-warehouse"></i> Select Warehouse to Enter</h3>
+        </div>
+        <div class="modal-body">
+          <div class="warehouse-selection">
+            <div class="warehouse-options" id="warehouseOptions">
+              <!-- Warehouse options will be populated here -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="cancelWarehouseSelection" onclick="closeWarehouseSelectionModal()">Cancel</button>
         </div>
       </div>
     </div>
