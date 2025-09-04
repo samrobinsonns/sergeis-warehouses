@@ -343,34 +343,6 @@ RegisterNetEvent('sergeis-warehouse:server:sellWarehouse', function()
     end
 end)
 
--- Get warehouse info for client
-RegisterNetEvent('sergeis-warehouse:server:getWarehouseInfo', function()
-    local src = source
-    local player = QBCore.Functions.GetPlayer(src)
-    if not player then return end
-    
-    local citizenId = player.PlayerData.citizenid
-    local warehouse = getWarehouseData(citizenId)
-    
-    local info = {
-        owned = false,
-        id = nil,
-        purchased_slots = 0,
-        max_slots = Config.Warehouse.maxSlots,
-        slot_price = Config.Warehouse.slotPrice,
-        warehouse_price = Config.Warehouse.price,
-        sell_price = Config.Warehouse.sellPrice,
-        slot_prices = Config.Warehouse.slotPrices -- Add individual slot prices
-    }
-    
-    if warehouse then
-        info.owned = true
-        info.id = warehouse.id
-        info.purchased_slots = warehouse.purchased_slots
-    end
-    
-    TriggerClientEvent('sergeis-warehouse:client:receiveWarehouseInfo', src, info)
-end)
 
 -- Variable to store player warehouse buckets
 local playerWarehouseBuckets = {}
@@ -1127,7 +1099,21 @@ end)
 RegisterNetEvent('sergeis-warehouse:server:getWarehouseInfo', function()
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
-    if not player then return end
+    if not player then 
+        print(string.format('[WAREHOUSE] getWarehouseInfo: Player not found for source %s, retrying in 2 seconds...', src))
+        -- Retry after a short delay if player is not loaded yet
+        CreateThread(function()
+            Wait(2000)
+            local retryPlayer = QBCore.Functions.GetPlayer(src)
+            if retryPlayer then
+                print(string.format('[WAREHOUSE] getWarehouseInfo: Retry successful for source %s', src))
+                TriggerEvent('sergeis-warehouse:server:getWarehouseInfo', src)
+            else
+                print(string.format('[WAREHOUSE] getWarehouseInfo: Retry failed for source %s', src))
+            end
+        end)
+        return 
+    end
     
     local citizenId = player.PlayerData.citizenid
     local warehouse = getWarehouseData(citizenId)

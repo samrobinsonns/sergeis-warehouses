@@ -748,8 +748,8 @@ CreateThread(function()
         })
     end
 
-    -- Refresh ownership on resource start
-    Wait(1000)
+    -- Refresh ownership on resource start - increased delay to ensure QBCore is fully loaded
+    Wait(5000)
     refreshOwnership()
     
     -- Recovery system for server restarts
