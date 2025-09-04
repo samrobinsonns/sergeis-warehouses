@@ -752,7 +752,7 @@ function shareWarehouse() {
 function clearSharingForm() {
   playerResults.style.display = 'none';
   shareExpires.value = '';
-  sharePermission.value = 'read';
+  sharePermission.value = 'write'; // Default to write permission
   shareBtn.disabled = true;
   selectedPlayer = null;
 }
@@ -1048,7 +1048,7 @@ function closeShareModal() {
     currentEditingShare = null;
     
     // Clear form fields
-    if (editPermission) editPermission.value = 'read';
+    if (editPermission) editPermission.value = 'write'; // Default to write permission
     if (editExpires) editExpires.value = '';
     
     // Also try removing the modal from the DOM flow
@@ -1502,7 +1502,7 @@ updateShareBtn.addEventListener('click', () => {
       currentEditingShare = null;
       
       // Clear form fields
-      if (editPermission) editPermission.value = 'read';
+      if (editPermission) editPermission.value = 'write'; // Default to write permission
       if (editExpires) editExpires.value = '';
       
       console.log('Modal closed and form cleared after successful update');

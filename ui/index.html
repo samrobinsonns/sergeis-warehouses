@@ -117,15 +117,15 @@
                          <!-- Nearby players will be populated here -->
                        </div>
                      </div>
-                     <div class="form-group">
+                     <div class="form-group" style="display: none;">
                        <label for="sharePermission">Permission Level:</label>
                        <select id="sharePermission">
                          <option value="read">Read Only</option>
-                         <option value="write">Read & Write</option>
+                         <option value="write" selected>Read & Write</option>
                          <option value="admin">Admin (Full Access)</option>
                        </select>
                      </div>
-                     <div class="form-group">
+                     <div class="form-group" style="display: none;">
                        <label for="shareExpires">Expires At (Optional):</label>
                        <input type="datetime-local" id="shareExpires" />
                      </div>
@@ -204,15 +204,15 @@
         </div>
         <div class="modal-body">
           <div class="share-management">
-            <div class="form-group">
+            <div class="form-group" style="display: none;">
               <label for="editPermission">Permission Level:</label>
               <select id="editPermission">
                 <option value="read">Read Only</option>
-                <option value="write">Read & Write</option>
+                <option value="write" selected>Read & Write</option>
                 <option value="admin">Admin (Full Access)</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display: none;">
               <label for="editExpires">Expires At (Optional):</label>
               <input type="datetime-local" id="editExpires" />
             </div>
